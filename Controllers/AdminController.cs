@@ -2,13 +2,13 @@
 using Microsoft.EntityFrameworkCore;
 using Back_ColheitaSolidaria.Data;
 using Back_ColheitaSolidaria.Models;
-using Back_ColheitaSolidaria.DTOs;
 using Back_ColheitaSolidaria.Services;
+using Back_ColheitaSolidaria.DTOs;
 
 namespace Back_ColheitaSolidaria.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")] // -> /api/admin
+    [Route("api/[controller]")]
     public class AdminController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -18,20 +18,16 @@ namespace Back_ColheitaSolidaria.Controllers
             _context = context;
         }
 
+        // ------------------ CREATE ------------------
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] AdminRegisterDto dto)
         {
-            // Validações básicas
             if (dto.Senha != dto.ConfirmarSenha)
                 return BadRequest("Senhas não conferem!");
 
             if (await _context.Admins.AnyAsync(a => a.Email == dto.Email))
                 return BadRequest("Já existe um Admin com este Email!");
 
-            if (await _context.Admins.AnyAsync(a => a.Cnpj == dto.Cnpj))
-                return BadRequest("Já existe um Admin com este CNPJ!");
-
-            // Monta o model e aplica hash na senha
             var admin = new Admin
             {
                 NomeCompleto = dto.NomeCompleto,
@@ -40,23 +36,31 @@ namespace Back_ColheitaSolidaria.Controllers
                 Email = dto.Email,
                 Telefone = dto.Telefone,
                 Endereco = dto.Endereco,
-                ChaveAcesso = dto.ChaveAcesso,
-                SenhaHash = PasswordHasher.HashPassword(dto.Senha)
+                SenhaHash = PasswordHasher.HashPassword(dto.Senha),
+                ChaveAcesso = dto.ChaveAcesso
             };
 
             _context.Admins.Add(admin);
             await _context.SaveChangesAsync();
 
-            return Ok("Admin cadastrado com sucesso!");
+            return CreatedAtAction(nameof(GetById), new { id = admin.Id }, new AdminReadDto
+            {
+                Id = admin.Id,
+                NomeCompleto = admin.NomeCompleto,
+                Cnpj = admin.Cnpj,
+                DataNascimento = admin.DataNascimento,
+                Email = admin.Email,
+                Telefone = admin.Telefone,
+                Endereco = admin.Endereco,
+                ChaveAcesso = admin.ChaveAcesso
+            });
         }
 
+        // ------------------ LOGIN ------------------
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] AdminLoginDto dto)
         {
-            var admin = await _context.Admins.FirstOrDefaultAsync(a =>
-                a.Cnpj == dto.Cnpj &&
-                a.Email == dto.Email &&
-                a.ChaveAcesso == dto.ChaveAcesso);
+            var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Email == dto.Email);
 
             if (admin == null)
                 return Unauthorized("Admin não encontrado!");
@@ -65,6 +69,84 @@ namespace Back_ColheitaSolidaria.Controllers
                 return Unauthorized("Senha incorreta!");
 
             return Ok($"Login realizado com sucesso! Bem-vindo {admin.NomeCompleto}");
+        }
+
+        // ------------------ READ ------------------
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<AdminReadDto>>> GetAll()
+        {
+            var admins = await _context.Admins
+                .Select(a => new AdminReadDto
+                {
+                    Id = a.Id,
+                    NomeCompleto = a.NomeCompleto,
+                    Cnpj = a.Cnpj,
+                    DataNascimento = a.DataNascimento,
+                    Email = a.Email,
+                    Telefone = a.Telefone,
+                    Endereco = a.Endereco,
+                    ChaveAcesso = a.ChaveAcesso
+                })
+                .ToListAsync();
+
+            return Ok(admins);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<AdminReadDto>> GetById(int id)
+        {
+            var admin = await _context.Admins.FindAsync(id);
+
+            if (admin == null)
+                return NotFound("Admin não encontrado!");
+
+            return Ok(new AdminReadDto
+            {
+                Id = admin.Id,
+                NomeCompleto = admin.NomeCompleto,
+                Cnpj = admin.Cnpj,
+                DataNascimento = admin.DataNascimento,
+                Email = admin.Email,
+                Telefone = admin.Telefone,
+                Endereco = admin.Endereco,
+                ChaveAcesso = admin.ChaveAcesso
+            });
+        }
+
+        // ------------------ UPDATE ------------------
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] AdminUpdateDto dto)
+        {
+            var admin = await _context.Admins.FindAsync(id);
+
+            if (admin == null)
+                return NotFound("Admin não encontrado!");
+
+            admin.NomeCompleto = dto.NomeCompleto;
+            admin.Cnpj = dto.Cnpj;
+            admin.DataNascimento = dto.DataNascimento;
+            admin.Email = dto.Email;
+            admin.Telefone = dto.Telefone;
+            admin.Endereco = dto.Endereco;
+
+            await _context.SaveChangesAsync();
+
+            return NoContent(); // 204
+        }
+
+        // ------------------ DELETE ------------------
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var admin = await _context.Admins.FindAsync(id);
+
+            if (admin == null)
+                return NotFound("Admin não encontrado!");
+
+            _context.Admins.Remove(admin);
+            await _context.SaveChangesAsync();
+
+            return NoContent(); // 204
         }
     }
 }

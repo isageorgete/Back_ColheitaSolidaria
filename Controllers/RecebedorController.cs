@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Back_ColheitaSolidaria.Data;
-using Back_ColheitaSolidaria.Models;
+﻿using Back_ColheitaSolidaria.Data;
 using Back_ColheitaSolidaria.DTOs;
+using Back_ColheitaSolidaria.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Back_ColheitaSolidaria.Services;
 
 namespace Back_ColheitaSolidaria.Controllers
@@ -21,42 +21,104 @@ namespace Back_ColheitaSolidaria.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RecebedorRegisterDto dto)
         {
-            if (dto.Senha != dto.ConfirmarSenha)
-                return BadRequest("Senhas não conferem!");
-
             if (await _context.Recebedores.AnyAsync(r => r.Email == dto.Email))
-                return BadRequest("Já existe um Recebedor com este Email!");
+                return BadRequest("Já existe um recebedor com este email.");
 
             var recebedor = new Recebedor
             {
                 NomeCompleto = dto.NomeCompleto,
-                Cpf = dto.CPF,
+                Cpf = dto.Cpf,
                 DataNascimento = dto.DataNascimento,
                 NumeroDeFamiliares = dto.NumeroDeFamiliares,
                 Email = dto.Email,
                 Telefone = dto.Telefone,
-                SenhaHash = PasswordHasher.HashPassword(dto.Senha)
+                SenhaHash = PasswordHasher.HashPassword(dto.Senha) // uso estático
             };
 
             _context.Recebedores.Add(recebedor);
             await _context.SaveChangesAsync();
 
-            return Ok("Recebedor cadastrado com sucesso!");
+            return Ok(new { Mensagem = "Recebedor registrado com sucesso", recebedor.Id });
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] RecebedorLoginDto dto)
         {
             var recebedor = await _context.Recebedores.FirstOrDefaultAsync(r => r.Email == dto.Email);
-
             if (recebedor == null)
                 return Unauthorized("Recebedor não encontrado!");
 
-            if (recebedor.SenhaHash != PasswordHasher.HashPassword(dto.Senha))
+            if (!PasswordHasher.VerifyPassword(dto.Senha, recebedor.SenhaHash)) // uso estático
                 return Unauthorized("Senha incorreta!");
 
             return Ok($"Login realizado com sucesso! Bem-vindo {recebedor.NomeCompleto}");
         }
+
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<RecebedorReadDto>>> GetAll()
+        {
+            var recebedores = await _context.Recebedores
+                .Select(r => new RecebedorReadDto
+                {
+                    Id = r.Id,
+                    NomeCompleto = r.NomeCompleto,
+                    Cpf = r.Cpf,
+                    DataNascimento = r.DataNascimento,
+                    NumeroDeFamiliares = r.NumeroDeFamiliares,
+                    Email = r.Email,
+                    Telefone = r.Telefone
+                })
+                .ToListAsync();
+
+            return Ok(recebedores);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<RecebedorReadDto>> GetById(int id)
+        {
+            var recebedor = await _context.Recebedores.FindAsync(id);
+            if (recebedor == null) return NotFound();
+
+            return Ok(new RecebedorReadDto
+            {
+                Id = recebedor.Id,
+                NomeCompleto = recebedor.NomeCompleto,
+                Cpf = recebedor.Cpf,
+                DataNascimento = recebedor.DataNascimento,
+                NumeroDeFamiliares = recebedor.NumeroDeFamiliares,
+                Email = recebedor.Email,
+                Telefone = recebedor.Telefone
+            });
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] RecebedorUpdateDto dto)
+        {
+            var recebedor = await _context.Recebedores.FindAsync(id);
+            if (recebedor == null) return NotFound();
+
+            recebedor.NomeCompleto = dto.NomeCompleto;
+            recebedor.NumeroDeFamiliares = dto.NumeroDeFamiliares;
+            recebedor.Telefone = dto.Telefone;
+
+            if (!string.IsNullOrEmpty(dto.Senha))
+                recebedor.SenhaHash = PasswordHasher.HashPassword(dto.Senha); // estático
+
+            await _context.SaveChangesAsync();
+
+            return Ok("Recebedor atualizado com sucesso.");
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var recebedor = await _context.Recebedores.FindAsync(id);
+            if (recebedor == null) return NotFound();
+
+            _context.Recebedores.Remove(recebedor);
+            await _context.SaveChangesAsync();
+
+            return Ok("Recebedor deletado com sucesso.");
+        }
     }
 }
-
