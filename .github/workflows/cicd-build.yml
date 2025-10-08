@@ -1,0 +1,25 @@
+name: Backend Build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout do código
+      uses: actions/checkout@v3
+
+    - name: Instalar .NET SDK
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '6.0.x' 
+    - name: Restaurar dependências
+      run: dotnet restore
+
+    - name: Compilar o projeto
+      run: dotnet build --configuration Release
