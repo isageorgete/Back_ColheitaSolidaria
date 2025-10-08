@@ -12,6 +12,7 @@
         public string SenhaHash { get; set; } = string.Empty;
 
         // Para login
+        // Testeeee
         public string ChaveAcesso { get; set; } = string.Empty;
     }
 }

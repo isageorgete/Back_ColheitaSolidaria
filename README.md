@@ -51,7 +51,7 @@ Camadas da Clean Architecture:
 
 ---
 
-## 🧱 Principais Entregas (GitHub Projects)
+## 🧱 Principais Entregas (Baseado no GitHub Projects)
 
 - Configuração inicial da API (estrutura de pastas e pacotes NuGet)  
 - AppDbContext e configuração do SQL Server  
