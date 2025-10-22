@@ -4,6 +4,7 @@ using Back_ColheitaSolidaria.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Back_ColheitaSolidaria.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Back_ColheitaSolidaria.Controllers
 {
@@ -41,19 +42,8 @@ namespace Back_ColheitaSolidaria.Controllers
             return Ok(new { Mensagem = "Recebedor registrado com sucesso", recebedor.Id });
         }
 
-        [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] RecebedorLoginDto dto)
-        {
-            var recebedor = await _context.Recebedores.FirstOrDefaultAsync(r => r.Email == dto.Email);
-            if (recebedor == null)
-                return Unauthorized("Recebedor não encontrado!");
 
-            if (!PasswordHasher.VerifyPassword(dto.Senha, recebedor.SenhaHash)) // uso estático
-                return Unauthorized("Senha incorreta!");
-
-            return Ok($"Login realizado com sucesso! Bem-vindo {recebedor.NomeCompleto}");
-        }
-
+        [Authorize(Roles = "Recebedor")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<RecebedorReadDto>>> GetAll()
         {
@@ -72,7 +62,7 @@ namespace Back_ColheitaSolidaria.Controllers
 
             return Ok(recebedores);
         }
-
+        [Authorize(Roles = "Recebedor")]
         [HttpGet("{id}")]
         public async Task<ActionResult<RecebedorReadDto>> GetById(int id)
         {
@@ -90,7 +80,7 @@ namespace Back_ColheitaSolidaria.Controllers
                 Telefone = recebedor.Telefone
             });
         }
-
+        [Authorize(Roles = "Recebedor")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] RecebedorUpdateDto dto)
         {
@@ -108,7 +98,7 @@ namespace Back_ColheitaSolidaria.Controllers
 
             return Ok("Recebedor atualizado com sucesso.");
         }
-
+        [Authorize(Roles = "Recebedor")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {

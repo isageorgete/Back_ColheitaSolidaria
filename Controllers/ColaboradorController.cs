@@ -4,6 +4,7 @@ using Back_ColheitaSolidaria.Data;
 using Back_ColheitaSolidaria.Models;
 using Back_ColheitaSolidaria.Services;
 using Back_ColheitaSolidaria.DTOs;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Back_ColheitaSolidaria.Controllers
 {
@@ -52,22 +53,10 @@ namespace Back_ColheitaSolidaria.Controllers
             });
         }
 
-        // ------------------ LOGIN ------------------
-        [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] ColaboradorLoginDto dto)
-        {
-            var colaborador = await _context.Colaboradores.FirstOrDefaultAsync(c => c.Email == dto.Email);
 
-            if (colaborador == null)
-                return Unauthorized("Colaborador não encontrado!");
-
-            if (colaborador.SenhaHash != PasswordHasher.HashPassword(dto.Senha))
-                return Unauthorized("Senha incorreta!");
-
-            return Ok($"Login realizado com sucesso! Bem-vindo {colaborador.NomeCompleto}");
-        }
 
         // ------------------ READ ------------------
+        [Authorize(Roles = "Colaborador")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ColaboradorReadDto>>> GetAll()
         {
@@ -85,7 +74,7 @@ namespace Back_ColheitaSolidaria.Controllers
 
             return Ok(colaboradores);
         }
-
+        [Authorize(Roles = "Colaborador")]
         [HttpGet("{id}")]
         public async Task<ActionResult<ColaboradorReadDto>> GetById(int id)
         {
@@ -106,6 +95,7 @@ namespace Back_ColheitaSolidaria.Controllers
         }
 
         // ------------------ UPDATE ------------------
+        [Authorize(Roles = "Colaborador")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] ColaboradorUpdateDto dto)
         {
@@ -123,6 +113,7 @@ namespace Back_ColheitaSolidaria.Controllers
         }
 
         // ------------------ DELETE ------------------
+        [Authorize(Roles = "Colaborador")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {

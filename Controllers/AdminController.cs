@@ -4,6 +4,7 @@ using Back_ColheitaSolidaria.Data;
 using Back_ColheitaSolidaria.Models;
 using Back_ColheitaSolidaria.Services;
 using Back_ColheitaSolidaria.DTOs;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Back_ColheitaSolidaria.Controllers
 {
@@ -56,22 +57,9 @@ namespace Back_ColheitaSolidaria.Controllers
             });
         }
 
-        // ------------------ LOGIN ------------------
-        [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] AdminLoginDto dto)
-        {
-            var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Email == dto.Email);
-
-            if (admin == null)
-                return Unauthorized("Admin não encontrado!");
-
-            if (admin.SenhaHash != PasswordHasher.HashPassword(dto.Senha))
-                return Unauthorized("Senha incorreta!");
-
-            return Ok($"Login realizado com sucesso! Bem-vindo {admin.NomeCompleto}");
-        }
 
         // ------------------ READ ------------------
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<AdminReadDto>>> GetAll()
         {
@@ -91,7 +79,7 @@ namespace Back_ColheitaSolidaria.Controllers
 
             return Ok(admins);
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpGet("{id}")]
         public async Task<ActionResult<AdminReadDto>> GetById(int id)
         {
@@ -114,6 +102,8 @@ namespace Back_ColheitaSolidaria.Controllers
         }
 
         // ------------------ UPDATE ------------------
+
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] AdminUpdateDto dto)
         {
@@ -135,6 +125,7 @@ namespace Back_ColheitaSolidaria.Controllers
         }
 
         // ------------------ DELETE ------------------
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
