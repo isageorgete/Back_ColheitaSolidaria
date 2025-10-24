@@ -14,6 +14,24 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // ----------------------
+// Configuração do CORS
+// ----------------------
+var myAllowSpecificOrigins = "_myAllowSpecificOrigins";
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: myAllowSpecificOrigins,
+        policy =>
+        {
+            policy
+                .WithOrigins("http://localhost:5173") // 🔗 URL do front-end (React/Vite)
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        });
+});
+
+// ----------------------
 // Configura controllers e Swagger
 // ----------------------
 builder.Services.AddControllers();
@@ -90,18 +108,16 @@ var app = builder.Build();
 // Configura Swagger
 // ----------------------
 app.UseSwagger();
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Colheita Solidária API v1");
-    c.RoutePrefix = string.Empty; // Abre Swagger na raiz
-});
+app.UseSwaggerUI();
 
 // ----------------------
 // Pipeline de middleware
 // ----------------------
 app.UseHttpsRedirection();
 
-app.UseAuthentication(); // ?? precisa antes do UseAuthorization
+app.UseCors("_myAllowSpecificOrigins"); // 🧩 Ativa o CORS antes da autenticação
+
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
