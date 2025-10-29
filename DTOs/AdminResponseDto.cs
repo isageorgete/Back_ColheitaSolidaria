@@ -1,4 +1,4 @@
-﻿public class AdminReadDto
+﻿public class AdminResponseDto
 {
     public int Id { get; set; }
     public string NomeCompleto { get; set; } = string.Empty;

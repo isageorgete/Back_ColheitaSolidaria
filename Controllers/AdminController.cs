@@ -5,6 +5,7 @@ using Back_ColheitaSolidaria.Models;
 using Back_ColheitaSolidaria.Services;
 using Back_ColheitaSolidaria.DTOs;
 using Microsoft.AspNetCore.Authorization;
+using AutoMapper;
 
 namespace Back_ColheitaSolidaria.Controllers
 {
@@ -13,10 +14,12 @@ namespace Back_ColheitaSolidaria.Controllers
     public class AdminController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IMapper _mapper;
 
-        public AdminController(AppDbContext context)
+        public AdminController(AppDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         // ------------------ CREATE ------------------
@@ -29,80 +32,47 @@ namespace Back_ColheitaSolidaria.Controllers
             if (await _context.Admins.AnyAsync(a => a.Email == dto.Email))
                 return BadRequest("Já existe um Admin com este Email!");
 
-            var admin = new Admin
-            {
-                NomeCompleto = dto.NomeCompleto,
-                Cnpj = dto.Cnpj,
-                DataNascimento = dto.DataNascimento,
-                Email = dto.Email,
-                Telefone = dto.Telefone,
-                Endereco = dto.Endereco,
-                SenhaHash = PasswordHasher.HashPassword(dto.Senha),
-                ChaveAcesso = dto.ChaveAcesso
-            };
+            // 🟢 Usa AutoMapper para converter DTO → Entidade
+            var admin = _mapper.Map<Admin>(dto);
+            admin.SenhaHash = PasswordHasher.HashPassword(dto.Senha);
 
             _context.Admins.Add(admin);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetById), new { id = admin.Id }, new AdminReadDto
-            {
-                Id = admin.Id,
-                NomeCompleto = admin.NomeCompleto,
-                Cnpj = admin.Cnpj,
-                DataNascimento = admin.DataNascimento,
-                Email = admin.Email,
-                Telefone = admin.Telefone,
-                Endereco = admin.Endereco,
-                ChaveAcesso = admin.ChaveAcesso
-            });
-        }
+            // 🟢 Usa AutoMapper para converter Entidade → DTO de resposta
+            var adminResponse = _mapper.Map<AdminResponseDto>(admin);
 
+            return CreatedAtAction(nameof(GetById), new { id = admin.Id }, adminResponse);
+        }
 
         // ------------------ READ ------------------
         [Authorize(Roles = "Admin")]
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<AdminReadDto>>> GetAll()
+        public async Task<ActionResult<IEnumerable<AdminResponseDto>>> GetAll()
         {
-            var admins = await _context.Admins
-                .Select(a => new AdminReadDto
-                {
-                    Id = a.Id,
-                    NomeCompleto = a.NomeCompleto,
-                    Cnpj = a.Cnpj,
-                    DataNascimento = a.DataNascimento,
-                    Email = a.Email,
-                    Telefone = a.Telefone,
-                    Endereco = a.Endereco,
-                    ChaveAcesso = a.ChaveAcesso
-                })
-                .ToListAsync();
+            var admins = await _context.Admins.ToListAsync();
 
-            return Ok(admins);
+            // 🟢 Mapeia lista de entidades → lista de DTOs
+            var adminDtos = _mapper.Map<List<AdminResponseDto>>(admins);
+
+            return Ok(adminDtos);
         }
+
         [Authorize(Roles = "Admin")]
         [HttpGet("{id}")]
-        public async Task<ActionResult<AdminReadDto>> GetById(int id)
+        public async Task<ActionResult<AdminResponseDto>> GetById(int id)
         {
             var admin = await _context.Admins.FindAsync(id);
 
             if (admin == null)
                 return NotFound("Admin não encontrado!");
 
-            return Ok(new AdminReadDto
-            {
-                Id = admin.Id,
-                NomeCompleto = admin.NomeCompleto,
-                Cnpj = admin.Cnpj,
-                DataNascimento = admin.DataNascimento,
-                Email = admin.Email,
-                Telefone = admin.Telefone,
-                Endereco = admin.Endereco,
-                ChaveAcesso = admin.ChaveAcesso
-            });
+            // 🟢 Mapeia entidade → DTO
+            var adminDto = _mapper.Map<AdminResponseDto>(admin);
+            return Ok(adminDto);
         }
 
         // ------------------ UPDATE ------------------
-
         [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] AdminUpdateDto dto)
@@ -112,15 +82,10 @@ namespace Back_ColheitaSolidaria.Controllers
             if (admin == null)
                 return NotFound("Admin não encontrado!");
 
-            admin.NomeCompleto = dto.NomeCompleto;
-            admin.Cnpj = dto.Cnpj;
-            admin.DataNascimento = dto.DataNascimento;
-            admin.Email = dto.Email;
-            admin.Telefone = dto.Telefone;
-            admin.Endereco = dto.Endereco;
+            // 🟢 Atualiza os campos automaticamente a partir do DTO
+            _mapper.Map(dto, admin);
 
             await _context.SaveChangesAsync();
-
             return NoContent(); // 204
         }
 

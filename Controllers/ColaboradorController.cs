@@ -5,6 +5,7 @@ using Back_ColheitaSolidaria.Models;
 using Back_ColheitaSolidaria.Services;
 using Back_ColheitaSolidaria.DTOs;
 using Microsoft.AspNetCore.Authorization;
+using AutoMapper;
 
 namespace Back_ColheitaSolidaria.Controllers
 {
@@ -13,10 +14,12 @@ namespace Back_ColheitaSolidaria.Controllers
     public class ColaboradorController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IMapper _mapper;
 
-        public ColaboradorController(AppDbContext context)
+        public ColaboradorController(AppDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         // ------------------ CREATE ------------------
@@ -29,69 +32,37 @@ namespace Back_ColheitaSolidaria.Controllers
             if (await _context.Colaboradores.AnyAsync(c => c.Email == dto.Email))
                 return BadRequest("Já existe um Colaborador com este Email!");
 
-            var colaborador = new Colaborador
-            {
-                NomeCompleto = dto.NomeCompleto,
-                CPF = dto.CPF,
-                DataNascimento = dto.DataNascimento,
-                Email = dto.Email,
-                Telefone = dto.Telefone,
-                SenhaHash = PasswordHasher.HashPassword(dto.Senha)
-            };
+            var colaborador = _mapper.Map<Colaborador>(dto);
+            colaborador.SenhaHash = PasswordHasher.HashPassword(dto.Senha);
 
             _context.Colaboradores.Add(colaborador);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetById), new { id = colaborador.Id }, new ColaboradorReadDto
-            {
-                Id = colaborador.Id,
-                NomeCompleto = colaborador.NomeCompleto,
-                CPF = colaborador.CPF,
-                DataNascimento = colaborador.DataNascimento,
-                Email = colaborador.Email,
-                Telefone = colaborador.Telefone
-            });
+            var colaboradorResponse = _mapper.Map<ColaboradorResponseDto>(colaborador);
+
+            return CreatedAtAction(nameof(GetById), new { id = colaborador.Id }, colaboradorResponse);
         }
-
-
 
         // ------------------ READ ------------------
         [Authorize(Roles = "Colaborador")]
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ColaboradorReadDto>>> GetAll()
+        public async Task<ActionResult<IEnumerable<ColaboradorResponseDto>>> GetAll()
         {
-            var colaboradores = await _context.Colaboradores
-                .Select(c => new ColaboradorReadDto
-                {
-                    Id = c.Id,
-                    NomeCompleto = c.NomeCompleto,
-                    CPF = c.CPF,
-                    DataNascimento = c.DataNascimento,
-                    Email = c.Email,
-                    Telefone = c.Telefone
-                })
-                .ToListAsync();
-
-            return Ok(colaboradores);
+            var colaboradores = await _context.Colaboradores.ToListAsync();
+            var colaboradorDtos = _mapper.Map<List<ColaboradorResponseDto>>(colaboradores);
+            return Ok(colaboradorDtos);
         }
+
         [Authorize(Roles = "Colaborador")]
         [HttpGet("{id}")]
-        public async Task<ActionResult<ColaboradorReadDto>> GetById(int id)
+        public async Task<ActionResult<ColaboradorResponseDto>> GetById(int id)
         {
             var colaborador = await _context.Colaboradores.FindAsync(id);
-
             if (colaborador == null)
                 return NotFound("Colaborador não encontrado!");
 
-            return Ok(new ColaboradorReadDto
-            {
-                Id = colaborador.Id,
-                NomeCompleto = colaborador.NomeCompleto,
-                CPF = colaborador.CPF,
-                DataNascimento = colaborador.DataNascimento,
-                Email = colaborador.Email,
-                Telefone = colaborador.Telefone
-            });
+            var colaboradorDto = _mapper.Map<ColaboradorResponseDto>(colaborador);
+            return Ok(colaboradorDto);
         }
 
         // ------------------ UPDATE ------------------
@@ -100,16 +71,13 @@ namespace Back_ColheitaSolidaria.Controllers
         public async Task<IActionResult> Update(int id, [FromBody] ColaboradorUpdateDto dto)
         {
             var colaborador = await _context.Colaboradores.FindAsync(id);
-
             if (colaborador == null)
                 return NotFound("Colaborador não encontrado!");
 
-            colaborador.NomeCompleto = dto.NomeCompleto;
-            colaborador.Telefone = dto.Telefone;
-
+            _mapper.Map(dto, colaborador);
             await _context.SaveChangesAsync();
 
-            return NoContent(); // 204
+            return NoContent();
         }
 
         // ------------------ DELETE ------------------
@@ -118,14 +86,13 @@ namespace Back_ColheitaSolidaria.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var colaborador = await _context.Colaboradores.FindAsync(id);
-
             if (colaborador == null)
                 return NotFound("Colaborador não encontrado!");
 
             _context.Colaboradores.Remove(colaborador);
             await _context.SaveChangesAsync();
 
-            return NoContent(); // 204
+            return NoContent();
         }
     }
 }

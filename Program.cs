@@ -13,6 +13,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
 // ----------------------
 // Configuração do CORS
 // ----------------------
@@ -78,7 +80,7 @@ builder.Services.AddSwaggerGen(c =>
 // Configuração JWT
 // ----------------------
 var jwtSettings = builder.Configuration.GetSection("Jwt");
-var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]);
+var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
 
 builder.Services.AddAuthentication(options =>
 {

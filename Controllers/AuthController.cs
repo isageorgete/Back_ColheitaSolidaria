@@ -36,7 +36,7 @@ namespace Back_ColheitaSolidaria.Controllers
                 case "admin":
                     usuario = await _context.Admins.FirstOrDefaultAsync(a => a.Email == dto.Email);
                     break;
-                case "doador":
+                case "colaborador":
                     usuario = await _context.Colaboradores.FirstOrDefaultAsync(d => d.Email == dto.Email);
                     break;
                 case "recebedor":
@@ -63,16 +63,16 @@ namespace Back_ColheitaSolidaria.Controllers
 
             // Gerar token JWT
             var jwtSettings = _configuration.GetSection("Jwt");
-            var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]);
+            var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[]
                 {
-                    new Claim(ClaimTypes.Name, dto.Email),
-                    new Claim(ClaimTypes.Role, role)
-                }),
+        new Claim(ClaimTypes.Name, dto.Email),
+        new Claim(ClaimTypes.Role, role.First().ToString().ToUpper() + role.Substring(1).ToLower()) // "Admin", "Colaborador" ou "Recebedor"
+    }),
                 Expires = DateTime.UtcNow.AddHours(2),
                 Issuer = jwtSettings["Issuer"],
                 Audience = jwtSettings["Audience"],
@@ -87,6 +87,7 @@ namespace Back_ColheitaSolidaria.Controllers
                 Message = $"Login realizado com sucesso! Bem-vindo {dto.Email}",
                 Token = tokenString
             });
+
         }
     }
 }
