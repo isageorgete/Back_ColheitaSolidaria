@@ -48,6 +48,24 @@ namespace Back_ColheitaSolidaria.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Doacoes",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Nome = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Descricao = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Quantidade = table.Column<int>(type: "int", nullable: false),
+                    Validade = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ImagemUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    UsuarioId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Doacoes", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Recebedores",
                 columns: table => new
                 {
@@ -90,6 +108,9 @@ namespace Back_ColheitaSolidaria.Migrations
 
             migrationBuilder.DropTable(
                 name: "Colaboradores");
+
+            migrationBuilder.DropTable(
+                name: "Doacoes");
 
             migrationBuilder.DropTable(
                 name: "Recebedores");

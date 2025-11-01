@@ -1,9 +1,11 @@
 ﻿using Back_ColheitaSolidaria.Data;
-using Back_ColheitaSolidaria.Profiles; 
-using Back_ColheitaSolidaria.Services.Solicitacoes; 
+using Back_ColheitaSolidaria.Profiles;
+using Back_ColheitaSolidaria.Services.Doacoes;
+using Back_ColheitaSolidaria.Services.Solicitacoes;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi.Models;
 using System.Text;
 
@@ -21,9 +23,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddAutoMapper(typeof(SolicitacaoProfile));
 
 // ----------------------
-// Registra o Service de Solicitação
+// Registra os Services
 // ----------------------
 builder.Services.AddScoped<SolicitacaoService>();
+builder.Services.AddScoped<DoacaoService>();
 
 // ----------------------
 // Configuração do CORS
@@ -45,7 +48,12 @@ builder.Services.AddCors(options =>
 // ----------------------
 // Configura controllers e Swagger
 // ----------------------
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    // Permite upload de arquivos grandes
+    options.MaxModelBindingCollectionSize = int.MaxValue;
+}).AddNewtonsoftJson();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -116,18 +124,26 @@ builder.Services.AddAuthentication(options =>
 var app = builder.Build();
 
 // ----------------------
-// Configura Swagger
+// Configura URLs explícitas
+// ----------------------
+app.Urls.Clear();
+app.Urls.Add("http://localhost:7100");
+app.Urls.Add("https://localhost:5144"); // HTTPS opcional, só funciona se o certificado estiver confiável
+
+// ----------------------
+// Swagger
 // ----------------------
 app.UseSwagger();
-app.UseSwaggerUI();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Colheita Solidária API V1");
+});
 
 // ----------------------
 // Pipeline de middleware
 // ----------------------
-app.UseHttpsRedirection();
-
-app.UseCors("_myAllowSpecificOrigins"); // Ativa CORS antes da autenticação
-
+app.UseHttpsRedirection(); // mantém HTTPS
+app.UseCors(myAllowSpecificOrigins);
 app.UseAuthentication();
 app.UseAuthorization();
 
