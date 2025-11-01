@@ -10,6 +10,7 @@ namespace Back_ColheitaSolidaria.Data
         public DbSet<Colaborador> Colaboradores { get; set; }
         public DbSet<Admin> Admins { get; set; }
         public DbSet<Recebedor> Recebedores { get; set; }
+        public DbSet<Solicitacao> Solicitacoes { get; set; }
     }
 }
 

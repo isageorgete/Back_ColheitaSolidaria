@@ -65,6 +65,22 @@ namespace Back_ColheitaSolidaria.Migrations
                 {
                     table.PrimaryKey("PK_Recebedores", x => x.Id);
                 });
+
+            migrationBuilder.CreateTable(
+                name: "Solicitacoes",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    DataSolicitacao = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    DoacaoId = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    UsuarioId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Solicitacoes", x => x.Id);
+                });
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
@@ -77,6 +93,9 @@ namespace Back_ColheitaSolidaria.Migrations
 
             migrationBuilder.DropTable(
                 name: "Recebedores");
+
+            migrationBuilder.DropTable(
+                name: "Solicitacoes");
         }
     }
 }

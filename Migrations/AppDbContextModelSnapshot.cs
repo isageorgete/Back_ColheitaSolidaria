@@ -141,6 +141,32 @@ namespace Back_ColheitaSolidaria.Migrations
 
                     b.ToTable("Recebedores");
                 });
+
+            modelBuilder.Entity("Back_ColheitaSolidaria.Models.Solicitacao", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<DateTime>("DataSolicitacao")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DoacaoId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("UsuarioId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Solicitacoes");
+                });
 #pragma warning restore 612, 618
         }
     }

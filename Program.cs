@@ -1,4 +1,6 @@
 ﻿using Back_ColheitaSolidaria.Data;
+using Back_ColheitaSolidaria.Profiles; 
+using Back_ColheitaSolidaria.Services.Solicitacoes; 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -13,20 +15,27 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+// ----------------------
+// Configura AutoMapper
+// ----------------------
+builder.Services.AddAutoMapper(typeof(SolicitacaoProfile));
+
+// ----------------------
+// Registra o Service de Solicitação
+// ----------------------
+builder.Services.AddScoped<SolicitacaoService>();
 
 // ----------------------
 // Configuração do CORS
 // ----------------------
 var myAllowSpecificOrigins = "_myAllowSpecificOrigins";
-
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: myAllowSpecificOrigins,
         policy =>
         {
             policy
-                .WithOrigins("http://localhost:5173") // 🔗 URL do front-end (React/Vite)
+                .WithOrigins("http://localhost:5173") // front-end
                 .AllowAnyHeader()
                 .AllowAnyMethod()
                 .AllowCredentials();
@@ -47,7 +56,7 @@ builder.Services.AddSwaggerGen(c =>
         Description = "API do projeto Colheita Solidária com autenticação JWT"
     });
 
-    // 🔐 Configuração para permitir autenticação JWT no Swagger
+    // Configuração JWT no Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         In = ParameterLocation.Header,
@@ -80,7 +89,7 @@ builder.Services.AddSwaggerGen(c =>
 // Configuração JWT
 // ----------------------
 var jwtSettings = builder.Configuration.GetSection("Jwt");
-var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
+var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]);
 
 builder.Services.AddAuthentication(options =>
 {
@@ -117,7 +126,7 @@ app.UseSwaggerUI();
 // ----------------------
 app.UseHttpsRedirection();
 
-app.UseCors("_myAllowSpecificOrigins"); // 🧩 Ativa o CORS antes da autenticação
+app.UseCors("_myAllowSpecificOrigins"); // Ativa CORS antes da autenticação
 
 app.UseAuthentication();
 app.UseAuthorization();
