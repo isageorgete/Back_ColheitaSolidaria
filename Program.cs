@@ -38,7 +38,7 @@ builder.Services.AddCors(options =>
         policy =>
         {
             policy
-                .WithOrigins("http://localhost:5173") // front-end
+                .WithOrigins("http://localhost:5173", "https://localhost:5173") // front-end (HTTP e HTTPS)
                 .AllowAnyHeader()
                 .AllowAnyMethod()
                 .AllowCredentials();
@@ -128,7 +128,7 @@ var app = builder.Build();
 // ----------------------
 app.Urls.Clear();
 app.Urls.Add("http://localhost:7100");
-app.Urls.Add("https://localhost:5144"); // HTTPS opcional, só funciona se o certificado estiver confiável
+// app.Urls.Add("https://localhost:5144"); // HTTPS opcional, só funciona se o certificado estiver confiável
 
 // ----------------------
 // Swagger
@@ -142,8 +142,8 @@ app.UseSwaggerUI(c =>
 // ----------------------
 // Pipeline de middleware
 // ----------------------
-app.UseHttpsRedirection(); // mantém HTTPS
 app.UseCors(myAllowSpecificOrigins);
+// app.UseHttpsRedirection(); // mantém HTTPS
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -2,10 +2,10 @@
 using Microsoft.EntityFrameworkCore;
 using Back_ColheitaSolidaria.Data;
 using Back_ColheitaSolidaria.Models;
-using Back_ColheitaSolidaria.Services;
 using Back_ColheitaSolidaria.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using AutoMapper;
+using Back_ColheitaSolidaria.Services;
 
 namespace Back_ColheitaSolidaria.Controllers
 {
@@ -22,7 +22,8 @@ namespace Back_ColheitaSolidaria.Controllers
             _mapper = mapper;
         }
 
-        // ------------------ CREATE ------------------
+        // ------------------ CREATE (Cadastro público) ------------------
+        [AllowAnonymous] // 🔹 Permite cadastro sem token
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] AdminRegisterDto dto)
         {
@@ -32,14 +33,14 @@ namespace Back_ColheitaSolidaria.Controllers
             if (await _context.Admins.AnyAsync(a => a.Email == dto.Email))
                 return BadRequest("Já existe um Admin com este Email!");
 
-            // 🟢 Usa AutoMapper para converter DTO → Entidade
+            // Mapeia DTO → Entidade
             var admin = _mapper.Map<Admin>(dto);
             admin.SenhaHash = PasswordHasher.HashPassword(dto.Senha);
 
             _context.Admins.Add(admin);
             await _context.SaveChangesAsync();
 
-            // 🟢 Usa AutoMapper para converter Entidade → DTO de resposta
+            // Mapeia Entidade → DTO de resposta
             var adminResponse = _mapper.Map<AdminResponseDto>(admin);
 
             return CreatedAtAction(nameof(GetById), new { id = admin.Id }, adminResponse);
@@ -51,10 +52,7 @@ namespace Back_ColheitaSolidaria.Controllers
         public async Task<ActionResult<IEnumerable<AdminResponseDto>>> GetAll()
         {
             var admins = await _context.Admins.ToListAsync();
-
-            // 🟢 Mapeia lista de entidades → lista de DTOs
             var adminDtos = _mapper.Map<List<AdminResponseDto>>(admins);
-
             return Ok(adminDtos);
         }
 
@@ -63,11 +61,9 @@ namespace Back_ColheitaSolidaria.Controllers
         public async Task<ActionResult<AdminResponseDto>> GetById(int id)
         {
             var admin = await _context.Admins.FindAsync(id);
-
             if (admin == null)
                 return NotFound("Admin não encontrado!");
 
-            // 🟢 Mapeia entidade → DTO
             var adminDto = _mapper.Map<AdminResponseDto>(admin);
             return Ok(adminDto);
         }
@@ -78,13 +74,10 @@ namespace Back_ColheitaSolidaria.Controllers
         public async Task<IActionResult> Update(int id, [FromBody] AdminUpdateDto dto)
         {
             var admin = await _context.Admins.FindAsync(id);
-
             if (admin == null)
                 return NotFound("Admin não encontrado!");
 
-            // 🟢 Atualiza os campos automaticamente a partir do DTO
             _mapper.Map(dto, admin);
-
             await _context.SaveChangesAsync();
             return NoContent(); // 204
         }
@@ -95,13 +88,11 @@ namespace Back_ColheitaSolidaria.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var admin = await _context.Admins.FindAsync(id);
-
             if (admin == null)
                 return NotFound("Admin não encontrado!");
 
             _context.Admins.Remove(admin);
             await _context.SaveChangesAsync();
-
             return NoContent(); // 204
         }
     }
