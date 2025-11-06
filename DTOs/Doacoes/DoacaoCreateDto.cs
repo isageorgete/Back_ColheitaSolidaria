@@ -9,10 +9,7 @@ namespace Back_ColheitaSolidaria.DTOs.Doacoes
         public int Quantidade { get; set; }
         public DateTime Validade { get; set; }
 
-        // O usuário só envia o arquivo da imagem
-        public IFormFile Imagem { get; set; }
-
-        // REMOVER esta propriedade - será gerada pelo backend
-        // public string UrlImagem { get; set; }
+        // 🔹 URL pública da imagem (vinda do Supabase)
+        public string? ImagemUrl { get; set; }
     }
 }

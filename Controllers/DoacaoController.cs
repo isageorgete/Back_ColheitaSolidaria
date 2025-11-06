@@ -1,7 +1,7 @@
-﻿using Back_ColheitaSolidaria.DTOs.Doacoes;
-using Back_ColheitaSolidaria.Services.Doacoes;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Back_ColheitaSolidaria.DTOs.Doacoes;
+using Back_ColheitaSolidaria.Services.Doacoes;
 
 namespace Back_ColheitaSolidaria.Controllers
 {
@@ -17,72 +17,110 @@ namespace Back_ColheitaSolidaria.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll() => Ok(await _service.GetAllAsync());
+        public async Task<IActionResult> GetAll()
+        {
+            var doacoes = await _service.GetAllAsync();
+            return Ok(doacoes);
+        }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
             var result = await _service.GetByIdAsync(id);
-            if (result == null) return NotFound();
+            if (result == null)
+                return NotFound(new { message = "Doação não encontrada." });
+
             return Ok(result);
         }
 
+        // 🔒 Requer autenticação
+        [Authorize]
         [HttpPost]
-        public async Task<IActionResult> Create([FromForm] DoacaoCreateDto dto)
+        [RequestSizeLimit(10_000_000)]
+        public async Task<IActionResult> Create([FromBody] DoacaoCreateDto dto)
         {
             try
             {
-                Console.WriteLine("=== INICIANDO CREATE DOAÇÃO ===");
-                Console.WriteLine($"Nome: {dto.Nome}");
-                Console.WriteLine($"Descricao: {dto.Descricao}");
-                Console.WriteLine($"Quantidade: {dto.Quantidade}");
-                Console.WriteLine($"Validade: {dto.Validade}");
-                Console.WriteLine($"Imagem: {dto.Imagem?.FileName} ({dto.Imagem?.Length} bytes)");
+                if (dto == null)
+                    return BadRequest("Os dados da doação são obrigatórios.");
 
-                if (dto.Imagem != null)
-                {
-                    // Validações básicas
-                    if (dto.Imagem.Length == 0)
-                    {
-                        Console.WriteLine("Arquivo vazio detectado");
-                        return BadRequest("Arquivo de imagem vazio");
-                    }
+                if (string.IsNullOrWhiteSpace(dto.ImagemUrl))
+                    return BadRequest("A URL da imagem é obrigatória.");
 
-                    if (dto.Imagem.Length > 10 * 1024 * 1024) // 10MB
-                    {
-                        Console.WriteLine("Arquivo muito grande");
-                        return BadRequest("Arquivo muito grande. Máximo 10MB.");
-                    }
-                }
+                // 🧩 Pega o e-mail do usuário logado (vem do JWT)
+                var userEmail = User.Identity?.Name;
 
-                var result = await _service.CreateAsync(dto);
-                Console.WriteLine("Doação criada com sucesso!");
+                if (string.IsNullOrEmpty(userEmail))
+                    return Unauthorized(new { message = "Usuário não autenticado." });
+
+                var result = await _service.CreateAsync(dto, userEmail);
 
                 return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"ERRO NO CONTROLLER: {ex}");
-                Console.WriteLine($"Stack Trace: {ex.StackTrace}");
-                return StatusCode(500, $"Erro interno: {ex.Message}");
+                Console.WriteLine($"❌ Erro ao criar doação: {ex.Message}");
+                return StatusCode(500, new { message = "Erro interno ao criar a doação.", error = ex.Message });
             }
         }
 
+        [Authorize]
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromForm] DoacaoUpdateDto dto)
+        public async Task<IActionResult> Update(int id, [FromBody] DoacaoUpdateDto dto)
         {
-            // Agora passa apenas 2 argumentos: id e dto
-            var result = await _service.UpdateAsync(id, dto);
-            if (result == null) return NotFound();
-            return Ok(result);
+            try
+            {
+                var result = await _service.UpdateAsync(id, dto);
+                if (result == null)
+                    return NotFound(new { message = "Doação não encontrada." });
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Erro ao atualizar doação: {ex.Message}");
+                return StatusCode(500, new { message = "Erro interno ao atualizar a doação.", error = ex.Message });
+            }
         }
 
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var deleted = await _service.DeleteAsync(id);
-            if (!deleted) return NotFound();
-            return NoContent();
+            try
+            {
+                var deleted = await _service.DeleteAsync(id);
+                if (!deleted)
+                    return NotFound(new { message = "Doação não encontrada." });
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Erro ao deletar doação: {ex.Message}");
+                return StatusCode(500, new { message = "Erro interno ao deletar a doação.", error = ex.Message });
+            }
+        }
+
+        // 🔹 Nova rota: buscar doações de um colaborador específico
+        [Authorize]
+        [HttpGet("Colaborador/{usuarioId}")]
+        public async Task<IActionResult> GetByColaborador(int usuarioId)
+        {
+            try
+            {
+                var doacoes = await _service.GetByUsuarioIdAsync(usuarioId);
+
+                if (doacoes == null || !doacoes.Any())
+                    return NotFound(new { message = "Nenhuma doação encontrada para este colaborador." });
+
+                return Ok(doacoes);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Erro ao buscar doações por colaborador: {ex.Message}");
+                return StatusCode(500, new { message = "Erro interno ao buscar doações.", error = ex.Message });
+            }
         }
     }
 }

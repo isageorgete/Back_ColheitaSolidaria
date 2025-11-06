@@ -97,7 +97,7 @@ builder.Services.AddSwaggerGen(c =>
 // Configuração JWT
 // ----------------------
 var jwtSettings = builder.Configuration.GetSection("Jwt");
-var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]);
+var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
 
 builder.Services.AddAuthentication(options =>
 {
@@ -114,8 +114,10 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = jwtSettings["Issuer"],
         ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(key)
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        ClockSkew = TimeSpan.FromMinutes(5) // tolerância de 5 minutos
     };
+
 });
 
 // ----------------------
@@ -145,6 +147,14 @@ app.UseSwaggerUI(c =>
 app.UseCors(myAllowSpecificOrigins);
 // app.UseHttpsRedirection(); // mantém HTTPS
 app.UseAuthentication();
+
+app.Use(async (context, next) =>
+{
+    Console.WriteLine($"🔐 Authorization Header: {context.Request.Headers["Authorization"]}");
+    await next();
+});
+
+
 app.UseAuthorization();
 
 app.MapControllers();

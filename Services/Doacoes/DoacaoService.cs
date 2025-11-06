@@ -2,11 +2,7 @@
 using Back_ColheitaSolidaria.Data;
 using Back_ColheitaSolidaria.DTOs.Doacoes;
 using Back_ColheitaSolidaria.Models;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Supabase;
-using Supabase.Storage;
-using System.IO;
 
 namespace Back_ColheitaSolidaria.Services.Doacoes
 {
@@ -14,16 +10,11 @@ namespace Back_ColheitaSolidaria.Services.Doacoes
     {
         private readonly AppDbContext _context;
         private readonly IMapper _mapper;
-        private readonly Supabase.Client _supabaseClient;
 
         public DoacaoService(AppDbContext context, IMapper mapper)
         {
             _context = context;
             _mapper = mapper;
-
-            // Inicializa o Supabase Client
-            _supabaseClient = new Supabase.Client("https://pyjqpkkscqlokgmdtslk.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5anFwa2tzY3Fsb2tnbWR0c2xrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNDM5ODUsImV4cCI6MjA2NDYxOTk4NX0.9Kx1mTVvz7ZMH6Xi_e6ZBnQjNgaYQO28-cktBNE-Fso");
-            _supabaseClient.InitializeAsync().Wait();
         }
 
         // Listar todas as doações
@@ -40,80 +31,41 @@ namespace Back_ColheitaSolidaria.Services.Doacoes
             return doacao == null ? null : _mapper.Map<DoacaoResponseDto>(doacao);
         }
 
-        public async Task<DoacaoResponseDto> CreateAsync(DoacaoCreateDto dto)
+        // Criar doação (sem upload, apenas com a URL)
+        // Criar doação (com imagem ou imagemUrl)
+        public async Task<DoacaoResponseDto> CreateAsync(DoacaoCreateDto dto, string userEmail)
         {
-            try
-            {
-                Console.WriteLine("=== SERVICE: INICIANDO CREATE ===");
-                string urlImagem = null;
+            if (string.IsNullOrWhiteSpace(dto.ImagemUrl))
+                throw new Exception("A URL da imagem é obrigatória.");
 
-                if (dto.Imagem != null)
-                {
-                    Console.WriteLine("Fazendo upload da imagem...");
-                    var nomeArquivo = $"{Guid.NewGuid()}_{dto.Imagem.FileName}";
-                    var bucket = _supabaseClient.Storage.From("doacoes");
+            // Mapeia o DTO para entidade
+            var doacao = _mapper.Map<Doacao>(dto);
+            doacao.ImagemUrl = dto.ImagemUrl;
 
-                    using var stream = dto.Imagem.OpenReadStream();
-                    using var memoryStream = new MemoryStream();
-                    await stream.CopyToAsync(memoryStream);
-                    var fileBytes = memoryStream.ToArray();
+            // 🔹 Vincula o usuário logado, se houver
+            var colaborador = await _context.Colaboradores
+                .FirstOrDefaultAsync(c => c.Email == userEmail);
 
-                    Console.WriteLine($"Bytes do arquivo: {fileBytes.Length}");
+            if (colaborador == null)
+                throw new Exception("Colaborador não encontrado para este e-mail.");
 
-                    var options = new Supabase.Storage.FileOptions
-                    {
-                        CacheControl = "3600",
-                        Upsert = false
-                    };
+            doacao.UsuarioId = colaborador.Id;
 
-                    await bucket.Upload(fileBytes, nomeArquivo, options);
-                    urlImagem = bucket.GetPublicUrl(nomeArquivo);
-                    Console.WriteLine($"Upload concluído. URL: {urlImagem}");
-                }
+            _context.Doacoes.Add(doacao);
+            await _context.SaveChangesAsync();
 
-                var doacao = _mapper.Map<Doacao>(dto);
-                doacao.ImagemUrl = urlImagem;
-
-                Console.WriteLine("Salvando no banco de dados...");
-                _context.Doacoes.Add(doacao);
-                await _context.SaveChangesAsync();
-                Console.WriteLine("Salvo com sucesso!");
-
-                return _mapper.Map<DoacaoResponseDto>(doacao);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"ERRO NO SERVICE: {ex}");
-                throw;
-            }
+            return _mapper.Map<DoacaoResponseDto>(doacao);
         }
 
+
+
+
+        // Atualizar doação
         public async Task<DoacaoResponseDto?> UpdateAsync(int id, DoacaoUpdateDto dto)
         {
             var doacao = await _context.Doacoes.FindAsync(id);
             if (doacao == null) return null;
 
-            if (dto.NovaImagem != null)
-            {
-                var nomeArquivo = $"{Guid.NewGuid()}_{dto.NovaImagem.FileName}";
-                var bucket = _supabaseClient.Storage.From("doacoes");
-
-                using var stream = dto.NovaImagem.OpenReadStream();
-                using var memoryStream = new MemoryStream();
-                await stream.CopyToAsync(memoryStream);
-                var fileBytes = memoryStream.ToArray();
-
-                var options = new Supabase.Storage.FileOptions
-                {
-                    CacheControl = "3600",
-                    Upsert = false
-                };
-
-                await bucket.Upload(fileBytes, nomeArquivo, options);
-                doacao.ImagemUrl = bucket.GetPublicUrl(nomeArquivo);
-            }
-
-            // Mapeia apenas os dados básicos (ignora NovaImagem e UrlImagem)
             _mapper.Map(dto, doacao);
             await _context.SaveChangesAsync();
 
@@ -129,6 +81,13 @@ namespace Back_ColheitaSolidaria.Services.Doacoes
             _context.Doacoes.Remove(doacao);
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<List<Doacao>> GetByUsuarioIdAsync(int usuarioId)
+        {
+            return await _context.Doacoes
+                .Where(d => d.UsuarioId == usuarioId)
+                .ToListAsync();
         }
     }
 }

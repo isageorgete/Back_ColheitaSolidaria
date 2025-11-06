@@ -73,7 +73,7 @@ namespace Back_ColheitaSolidaria.Controllers
         new Claim(ClaimTypes.Name, dto.Email),
         new Claim(ClaimTypes.Role, role.First().ToString().ToUpper() + role.Substring(1).ToLower()) // "Admin", "Colaborador" ou "Recebedor"
     }),
-                Expires = DateTime.UtcNow.AddHours(2),
+                Expires = DateTime.Now.AddDays(7),
                 Issuer = jwtSettings["Issuer"],
                 Audience = jwtSettings["Audience"],
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
@@ -85,8 +85,16 @@ namespace Back_ColheitaSolidaria.Controllers
             return Ok(new
             {
                 Message = $"Login realizado com sucesso! Bem-vindo {dto.Email}",
-                Token = tokenString
+                Token = tokenString,
+                UserId = usuario switch
+                {
+                    Admin a => a.Id,
+                    Colaborador c => c.Id,
+                    Recebedor r => r.Id,
+                    _ => 0
+                }
             });
+
 
         }
     }
