@@ -71,7 +71,11 @@ namespace Back_ColheitaSolidaria.Controllers
                 Subject = new ClaimsIdentity(new[]
                 {
         new Claim(ClaimTypes.Name, dto.Email),
-        new Claim(ClaimTypes.Role, role.First().ToString().ToUpper() + role.Substring(1).ToLower()) // "Admin", "Colaborador" ou "Recebedor"
+        new Claim(ClaimTypes.Role, role.Equals("Admin", StringComparison.OrdinalIgnoreCase)
+        ? "Admin"
+    :   role.Equals("Colaborador", StringComparison.OrdinalIgnoreCase)
+         ? "Colaborador"
+          : "Recebedor")
     }),
                 Expires = DateTime.Now.AddDays(7),
                 Issuer = jwtSettings["Issuer"],

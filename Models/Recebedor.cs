@@ -29,5 +29,7 @@ namespace Back_ColheitaSolidaria.Models
 
         [Required]
         public string SenhaHash { get; set; } = string.Empty;
+
+        public string Role { get; set; } = "Recebedor";
     }
 }

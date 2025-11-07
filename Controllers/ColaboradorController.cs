@@ -44,7 +44,7 @@ namespace Back_ColheitaSolidaria.Controllers
         }
 
         // ------------------ READ ------------------
-        [Authorize(Roles = "Colaborador")]
+        [Authorize(Roles = "Colaborador, Admin")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ColaboradorResponseDto>>> GetAll()
         {
@@ -53,7 +53,7 @@ namespace Back_ColheitaSolidaria.Controllers
             return Ok(colaboradorDtos);
         }
 
-        [Authorize(Roles = "Colaborador")]
+        [Authorize(Roles = "Colaborador, Admin")]
         [HttpGet("{id}")]
         public async Task<ActionResult<ColaboradorResponseDto>> GetById(int id)
         {
@@ -66,7 +66,7 @@ namespace Back_ColheitaSolidaria.Controllers
         }
 
         // ------------------ UPDATE ------------------
-        [Authorize(Roles = "Colaborador")]
+        [Authorize(Roles = "Colaborador, Admin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] ColaboradorUpdateDto dto)
         {
@@ -74,14 +74,23 @@ namespace Back_ColheitaSolidaria.Controllers
             if (colaborador == null)
                 return NotFound("Colaborador não encontrado!");
 
+            var email = User.Identity?.Name;
+
+            if (colaborador.Email != email && !User.IsInRole("Admin"))
+                return Forbid("Você não pode alterar outro usuário!");
+           
             _mapper.Map(dto, colaborador);
+
+            if (!string.IsNullOrEmpty(dto.Senha))
+                colaborador.SenhaHash = PasswordHasher.HashPassword(dto.Senha);
+
             await _context.SaveChangesAsync();
 
             return NoContent();
         }
 
         // ------------------ DELETE ------------------
-        [Authorize(Roles = "Colaborador")]
+        [Authorize(Roles = "Colaborador, Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -94,5 +103,43 @@ namespace Back_ColheitaSolidaria.Controllers
 
             return NoContent();
         }
+
+        [Authorize(Roles = "Colaborador, Admin")]
+        [HttpGet("me")]
+        public async Task<IActionResult> GetMe()
+        {
+            var email = User.Identity.Name;
+
+            var colaborador = await _context.Colaboradores.FirstOrDefaultAsync(c => c.Email == email);
+
+            if (colaborador == null)
+                return NotFound("Usuário não encontrado!");
+
+            var colaboradorDto = _mapper.Map<ColaboradorResponseDto>(colaborador);
+            return Ok(colaboradorDto);
+        }
+        
+
+        [Authorize(Roles = "Colaborador, Admin")]
+        [HttpPut("me")]
+        public async Task<IActionResult> UpdateMe([FromBody] ColaboradorUpdateDto dto)
+        {
+            var email = User.Identity?.Name;
+
+            var colaborador = await _context.Colaboradores.FirstOrDefaultAsync(c => c.Email == email);
+
+            if (colaborador == null)
+                return NotFound("Usuário não encontrado!");
+
+            _mapper.Map(dto, colaborador);
+
+            if (!string.IsNullOrEmpty(dto.Senha))
+                colaborador.SenhaHash = PasswordHasher.HashPassword(dto.Senha);
+
+            await _context.SaveChangesAsync();
+            return Ok("Perfil atualizado com sucesso!");
+        }
+
+
     }
 }

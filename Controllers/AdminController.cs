@@ -77,6 +77,7 @@ namespace Back_ColheitaSolidaria.Controllers
             if (admin == null)
                 return NotFound("Admin não encontrado!");
 
+
             _mapper.Map(dto, admin);
             await _context.SaveChangesAsync();
             return NoContent(); // 204
@@ -95,5 +96,75 @@ namespace Back_ColheitaSolidaria.Controllers
             await _context.SaveChangesAsync();
             return NoContent(); // 204
         }
+        [Authorize(Roles = "Admin")]
+        [HttpGet("me")]
+        public async Task<IActionResult> GetMe()
+        {
+            var email = User.Identity?.Name;
+            var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Email == email);
+
+            if (admin == null)
+                return NotFound("Usuário não encontrado!");
+
+            var adminDto = _mapper.Map<AdminResponseDto>(admin);
+            return Ok(adminDto);
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPut("me")]
+        public async Task<IActionResult> UpdateMe([FromBody] AdminUpdateDto dto)
+        {
+            var email = User.Identity?.Name;
+
+            var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Email == email);
+
+            if (admin == null)
+                return NotFound("Usuário não encontrado!");
+
+            _mapper.Map(dto, admin);
+
+            if (!string.IsNullOrEmpty(dto.Senha))
+                admin.SenhaHash = PasswordHasher.HashPassword(dto.Senha);
+
+            await _context.SaveChangesAsync();
+            return Ok("Perfil atualizado com sucesso!");
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPut("alterar-role")]
+        public async Task<IActionResult> AlterarRole([FromBody] UpdateRoleDto dto)
+        {
+            if (string.IsNullOrEmpty(dto.NovoRole))
+                return BadRequest("O campo 'NovoRole' é obrigatório.");
+
+            object usuario = null;
+
+            switch (dto.TipoUsuario.ToLower())
+            {
+                case "colaborador":
+                    usuario = await _context.Colaboradores.FindAsync(dto.IdUsuario);
+                    break;
+                case "recebedor":
+                    usuario = await _context.Recebedores.FindAsync(dto.IdUsuario);
+                    break;
+                default:
+                    return BadRequest("Tipo de usuário inválido. Use 'colaborador' ou 'recebedor'.");
+            }
+
+            if (usuario == null)
+                return NotFound("Usuário não encontrado!");
+
+            // Atualiza o campo Role
+            if (usuario is Colaborador colab)
+                colab.Role = dto.NovoRole;
+            else if (usuario is Recebedor rec)
+                rec.Role = dto.NovoRole;
+
+            await _context.SaveChangesAsync();
+            return Ok($"Role do usuário ID {dto.IdUsuario} alterado para {dto.NovoRole} com sucesso!");
+        }
+
+
+
     }
 }

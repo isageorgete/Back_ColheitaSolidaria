@@ -41,7 +41,7 @@ namespace Back_ColheitaSolidaria.Controllers
         }
 
         // ------------------ READ ------------------
-        [Authorize(Roles = "Recebedor")]
+        [Authorize(Roles = "Recebedor, Admin")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<RecebedorResponseDto>>> GetAll()
         {
@@ -50,7 +50,7 @@ namespace Back_ColheitaSolidaria.Controllers
             return Ok(recebedorDtos);
         }
 
-        [Authorize(Roles = "Recebedor")]
+        [Authorize(Roles = "Recebedor, Admin")]
         [HttpGet("{id}")]
         public async Task<ActionResult<RecebedorResponseDto>> GetById(int id)
         {
@@ -63,13 +63,18 @@ namespace Back_ColheitaSolidaria.Controllers
         }
 
         // ------------------ UPDATE ------------------
-        [Authorize(Roles = "Recebedor")]
+        [Authorize(Roles = "Recebedor, Admin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] RecebedorUpdateDto dto)
         {
             var recebedor = await _context.Recebedores.FindAsync(id);
             if (recebedor == null)
                 return NotFound("Recebedor não encontrado!");
+
+            var email = User.Identity?.Name;
+            if (recebedor.Email != email && !User.IsInRole("Admin"))
+                return Forbid("Você não pode alterar outro usuário!");
+
 
             _mapper.Map(dto, recebedor);
 
@@ -82,7 +87,7 @@ namespace Back_ColheitaSolidaria.Controllers
         }
 
         // ------------------ DELETE ------------------
-        [Authorize(Roles = "Recebedor")]
+        [Authorize(Roles = "Recebedor, Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -90,10 +95,54 @@ namespace Back_ColheitaSolidaria.Controllers
             if (recebedor == null)
                 return NotFound("Recebedor não encontrado!");
 
+
+            var email = User.Identity?.Name;
+            if (recebedor.Email != email && !User.IsInRole("Admin"))
+                return Forbid("Você não pode alterar outro usuário!");
+
+
+
             _context.Recebedores.Remove(recebedor);
             await _context.SaveChangesAsync();
 
             return NoContent();
         }
+
+        [Authorize(Roles = "Recebedor, Admin")]
+        [HttpGet("me")]
+        public async Task<IActionResult> GetMe()
+        {
+            var email = User.Identity?.Name;
+            var recebedor = await _context.Recebedores.FirstOrDefaultAsync(r => r.Email == email);
+
+            if (recebedor == null)
+                return NotFound("Usuário não encontrado!");
+
+            var recebedorDto = _mapper.Map<RecebedorResponseDto>(recebedor);
+            return Ok(recebedorDto);
+        }
+
+        [Authorize(Roles = "Recebedor, Admin")]
+        [HttpPut("me")]
+        public async Task<IActionResult> UpdateMe([FromBody] RecebedorUpdateDto dto)
+        {
+            var email = User.Identity?.Name;
+
+            var recebedor = await _context.Recebedores.FirstOrDefaultAsync(r => r.Email == email);
+
+            if (recebedor == null)
+                return NotFound("Usuário não encontrado!");
+
+            _mapper.Map(dto, recebedor);
+
+            if (!string.IsNullOrEmpty(dto.Senha))
+                recebedor.SenhaHash = PasswordHasher.HashPassword(dto.Senha);
+
+            await _context.SaveChangesAsync();
+            return Ok("Perfil atualizado com sucesso!");
+        }
+
+
+
     }
 }
