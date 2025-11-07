@@ -3,9 +3,14 @@
     public class Solicitacao
     {
         public int Id { get; set; }
-        public DateTime DataSolicitacao { get; set; } = DateTime.Now;
         public int DoacaoId { get; set; }
-        public string Status { get; set; } = "Pendente"; // Pendente, Aprovado, Negado
-        public int UsuarioId { get; set; }
+        public int RecebedorId { get; set; }       // aqui substitui UsuarioId
+        public int QuantidadeSolicitada { get; set; }
+        public DateTime DataSolicitacao { get; set; }
+        public string Status { get; set; } = "pendente";
+
+        // Relações
+        public Doacao Doacao { get; set; }
+        public Recebedor Recebedor { get; set; }
     }
 }

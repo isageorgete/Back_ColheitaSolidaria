@@ -5,56 +5,54 @@ using Back_ColheitaSolidaria.Services.Solicitacoes;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi.Models;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ----------------------
-// Configura o DbContext para SQL Server
-// ----------------------
+// =======================
+// CONFIGURAÇÕES DE BANCO
+// =======================
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// ----------------------
-// Configura AutoMapper
-// ----------------------
+// =======================
+// CONFIGURAÇÃO AUTOMAPPER
+// =======================
 builder.Services.AddAutoMapper(typeof(SolicitacaoProfile));
 
-// ----------------------
-// Registra os Services
-// ----------------------
+// =======================
+// REGISTRO DOS SERVICES
+// =======================
 builder.Services.AddScoped<SolicitacaoService>();
 builder.Services.AddScoped<DoacaoService>();
 
-// ----------------------
-// Configuração do CORS
-// ----------------------
+// =======================
+// CONFIGURAÇÃO DO CORS
+// =======================
 var myAllowSpecificOrigins = "_myAllowSpecificOrigins";
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name: myAllowSpecificOrigins,
-        policy =>
-        {
-            policy
-                .WithOrigins("http://localhost:5173", "https://localhost:5173") // front-end (HTTP e HTTPS)
-                .AllowAnyHeader()
-                .AllowAnyMethod()
-                .AllowCredentials();
-        });
+    options.AddPolicy(name: myAllowSpecificOrigins, policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:5173", "https://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
 });
 
-// ----------------------
-// Configura controllers e Swagger
-// ----------------------
+// =======================
+// CONTROLLERS E SWAGGER
+// =======================
 builder.Services.AddControllers(options =>
 {
-    // Permite upload de arquivos grandes
     options.MaxModelBindingCollectionSize = int.MaxValue;
 }).AddNewtonsoftJson();
 
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
@@ -64,7 +62,7 @@ builder.Services.AddSwaggerGen(c =>
         Description = "API do projeto Colheita Solidária com autenticação JWT"
     });
 
-    // Configuração JWT no Swagger
+    // 🔐 Configuração do Swagger para autenticação JWT
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         In = ParameterLocation.Header,
@@ -93,9 +91,9 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// ----------------------
-// Configuração JWT
-// ----------------------
+// =======================
+// CONFIGURAÇÃO JWT
+// =======================
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
 
@@ -106,54 +104,84 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    options.RequireHttpsMetadata = false; // ✅ permite HTTP local
+    options.SaveToken = true;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
+
         ValidIssuer = jwtSettings["Issuer"],
         ValidAudience = jwtSettings["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(key),
-        ClockSkew = TimeSpan.FromMinutes(5) // tolerância de 5 minutos
+
+        ClockSkew = TimeSpan.Zero // ✅ sem tolerância extra
     };
 
+    // Log opcional para debug
+    options.Events = new JwtBearerEvents
+    {
+        OnAuthenticationFailed = context =>
+        {
+            Console.WriteLine($"❌ Erro de autenticação JWT: {context.Exception.Message}");
+            return Task.CompletedTask;
+        },
+        OnTokenValidated = context =>
+        {
+            Console.WriteLine($"✅ Token válido para: {context.Principal.Identity?.Name}");
+            return Task.CompletedTask;
+        },
+        OnMessageReceived = context =>
+        {
+            Console.WriteLine($"🔐 Header recebido: {context.Request.Headers["Authorization"]}");
+            return Task.CompletedTask;
+        }
+    };
 });
 
-// ----------------------
-// Build da aplicação
-// ----------------------
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("DefaultPolicy", policy =>
+        policy.RequireAuthenticatedUser());
+});
+
+// =======================
+// BUILD E PIPELINE
+// =======================
 var app = builder.Build();
 
-// ----------------------
-// Configura URLs explícitas
-// ----------------------
+// Configuração de porta
 app.Urls.Clear();
 app.Urls.Add("http://localhost:7100");
-// app.Urls.Add("https://localhost:5144"); // HTTPS opcional, só funciona se o certificado estiver confiável
 
-// ----------------------
 // Swagger
-// ----------------------
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "Colheita Solidária API V1");
 });
 
-// ----------------------
-// Pipeline de middleware
-// ----------------------
+// Pipeline de middlewares
 app.UseCors(myAllowSpecificOrigins);
-// app.UseHttpsRedirection(); // mantém HTTPS
 app.UseAuthentication();
 
+// ----------------------
+// Middleware para debug das claims
+// ----------------------
 app.Use(async (context, next) =>
 {
-    Console.WriteLine($"🔐 Authorization Header: {context.Request.Headers["Authorization"]}");
+    Console.WriteLine($"🔐 Header recebido: {context.Request.Headers["Authorization"]}");
+    if (context.User.Identity != null && context.User.Identity.IsAuthenticated)
+    {
+        foreach (var claim in context.User.Claims)
+        {
+            Console.WriteLine($"Claim {claim.Type} = {claim.Value}");
+        }
+    }
     await next();
 });
-
 
 app.UseAuthorization();
 

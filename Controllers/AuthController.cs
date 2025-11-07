@@ -1,13 +1,14 @@
-﻿using Back_ColheitaSolidaria.Data;
-using Back_ColheitaSolidaria.Models;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Back_ColheitaSolidaria.Data;
 using Back_ColheitaSolidaria.DTOs;
+using Back_ColheitaSolidaria.Models;
+using Back_ColheitaSolidaria.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using Back_ColheitaSolidaria.Services;
 
 namespace Back_ColheitaSolidaria.Controllers
 {
@@ -27,17 +28,19 @@ namespace Back_ColheitaSolidaria.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] AuthLoginDto dto)
         {
+            if (dto == null || string.IsNullOrEmpty(dto.Email) || string.IsNullOrEmpty(dto.Senha))
+                return BadRequest("E-mail e senha são obrigatórios.");
+
             object usuario = null;
             string role = dto.TipoUsuario;
 
-            // Buscar usuário pelo tipo
             switch (dto.TipoUsuario.ToLower())
             {
                 case "admin":
                     usuario = await _context.Admins.FirstOrDefaultAsync(a => a.Email == dto.Email);
                     break;
                 case "colaborador":
-                    usuario = await _context.Colaboradores.FirstOrDefaultAsync(d => d.Email == dto.Email);
+                    usuario = await _context.Colaboradores.FirstOrDefaultAsync(c => c.Email == dto.Email);
                     break;
                 case "recebedor":
                     usuario = await _context.Recebedores.FirstOrDefaultAsync(r => r.Email == dto.Email);
@@ -49,7 +52,6 @@ namespace Back_ColheitaSolidaria.Controllers
             if (usuario == null)
                 return Unauthorized("Usuário não encontrado!");
 
-            // Verificar senha (cada modelo tem SenhaHash)
             string senhaHash = dto.TipoUsuario.ToLower() switch
             {
                 "admin" => ((Admin)usuario).SenhaHash,
@@ -61,23 +63,39 @@ namespace Back_ColheitaSolidaria.Controllers
             if (senhaHash != PasswordHasher.HashPassword(dto.Senha))
                 return Unauthorized("Senha incorreta!");
 
-            // Gerar token JWT
             var jwtSettings = _configuration.GetSection("Jwt");
             var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
-
             var tokenHandler = new JwtSecurityTokenHandler();
+
+            int userId = usuario switch
+            {
+                Admin a => a.Id,
+                Colaborador c => c.Id,
+                Recebedor r => r.Id,
+                _ => 0
+            };
+
+            string nomeUsuario = usuario switch
+            {
+                Admin a => a.NomeCompleto,
+                Colaborador c => c.NomeCompleto,
+                Recebedor r => r.NomeCompleto,
+                _ => dto.Email
+            };
+
+            var claims = new List<Claim>
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
+                new Claim(JwtRegisteredClaimNames.Email, dto.Email),
+                new Claim(ClaimTypes.Name, dto.Email), // ← garante que User.Identity.Name funcione
+                new Claim(ClaimTypes.Role, char.ToUpper(role[0]) + role.Substring(1).ToLower(), ClaimValueTypes.String),
+                new Claim("nome", nomeUsuario)
+            };
+
             var tokenDescriptor = new SecurityTokenDescriptor
             {
-                Subject = new ClaimsIdentity(new[]
-                {
-        new Claim(ClaimTypes.Name, dto.Email),
-        new Claim(ClaimTypes.Role, role.Equals("Admin", StringComparison.OrdinalIgnoreCase)
-        ? "Admin"
-    :   role.Equals("Colaborador", StringComparison.OrdinalIgnoreCase)
-         ? "Colaborador"
-          : "Recebedor")
-    }),
-                Expires = DateTime.Now.AddDays(7),
+                Subject = new ClaimsIdentity(claims),
+                Expires = DateTime.UtcNow.AddHours(4),
                 Issuer = jwtSettings["Issuer"],
                 Audience = jwtSettings["Audience"],
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
@@ -88,19 +106,47 @@ namespace Back_ColheitaSolidaria.Controllers
 
             return Ok(new
             {
-                Message = $"Login realizado com sucesso! Bem-vindo {dto.Email}",
-                Token = tokenString,
-                UserId = usuario switch
+                message = $"Login realizado com sucesso! Bem-vindo {nomeUsuario}",
+                token = tokenString,
+                usuario = new
                 {
-                    Admin a => a.Id,
-                    Colaborador c => c.Id,
-                    Recebedor r => r.Id,
-                    _ => 0
+                    id = userId,
+                    nome = nomeUsuario,
+                    email = dto.Email,
+                    role = role
                 }
             });
+        }
 
+        [Authorize]
+        [HttpGet("me")]
+        public async Task<IActionResult> GetUsuarioLogado()
+        {
+            try
+            {
+                var email = User.Identity?.Name;
+                var role = User.FindFirst(ClaimTypes.Role)?.Value;
 
+                if (email == null || role == null)
+                    return Unauthorized(new { message = "Token inválido ou ausente." });
+
+                object usuario = role.ToLower() switch
+                {
+                    "admin" => await _context.Admins.FirstOrDefaultAsync(a => a.Email == email),
+                    "colaborador" => await _context.Colaboradores.FirstOrDefaultAsync(c => c.Email == email),
+                    "recebedor" => await _context.Recebedores.FirstOrDefaultAsync(r => r.Email == email),
+                    _ => null
+                };
+
+                if (usuario == null)
+                    return NotFound(new { message = "Usuário não encontrado." });
+
+                return Ok(usuario);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao obter usuário logado.", error = ex.Message });
+            }
         }
     }
 }
-
