@@ -1,5 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Back_ColheitaSolidaria.Models;
+﻿using Back_ColheitaSolidaria.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Back_ColheitaSolidaria.Data
 {
@@ -12,6 +12,14 @@ namespace Back_ColheitaSolidaria.Data
         public DbSet<Recebedor> Recebedores { get; set; }
         public DbSet<Solicitacao> Solicitacoes { get; set; }
         public DbSet<Doacao> Doacoes { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Doacao>()
+                .HasOne(d => d.Usuario)
+                .WithMany(c => c.Doacoes)
+                .HasForeignKey(d => d.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade);
+        }
     }
 }
-

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Back_ColheitaSolidaria.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251107202225_AddRoleToUsers")]
-    partial class AddRoleToUsers
+    [Migration("20251108155628_InitialCreate")]
+    partial class InitialCreate
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -143,6 +143,8 @@ namespace Back_ColheitaSolidaria.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UsuarioId");
+
                     b.ToTable("Doacoes");
                 });
 
@@ -204,16 +206,58 @@ namespace Back_ColheitaSolidaria.Migrations
                     b.Property<int>("DoacaoId")
                         .HasColumnType("int");
 
+                    b.Property<int>("QuantidadeSolicitada")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RecebedorId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("UsuarioId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
+                    b.HasIndex("DoacaoId");
+
+                    b.HasIndex("RecebedorId");
+
                     b.ToTable("Solicitacoes");
+                });
+
+            modelBuilder.Entity("Back_ColheitaSolidaria.Models.Doacao", b =>
+                {
+                    b.HasOne("Back_ColheitaSolidaria.Models.Colaborador", "Usuario")
+                        .WithMany("Doacoes")
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("Back_ColheitaSolidaria.Models.Solicitacao", b =>
+                {
+                    b.HasOne("Back_ColheitaSolidaria.Models.Doacao", "Doacao")
+                        .WithMany()
+                        .HasForeignKey("DoacaoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Back_ColheitaSolidaria.Models.Recebedor", "Recebedor")
+                        .WithMany()
+                        .HasForeignKey("RecebedorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Doacao");
+
+                    b.Navigation("Recebedor");
+                });
+
+            modelBuilder.Entity("Back_ColheitaSolidaria.Models.Colaborador", b =>
+                {
+                    b.Navigation("Doacoes");
                 });
 #pragma warning restore 612, 618
         }

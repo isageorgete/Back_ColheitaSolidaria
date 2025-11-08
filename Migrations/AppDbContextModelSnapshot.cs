@@ -141,6 +141,8 @@ namespace Back_ColheitaSolidaria.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UsuarioId");
+
                     b.ToTable("Doacoes");
                 });
 
@@ -221,6 +223,17 @@ namespace Back_ColheitaSolidaria.Migrations
                     b.ToTable("Solicitacoes");
                 });
 
+            modelBuilder.Entity("Back_ColheitaSolidaria.Models.Doacao", b =>
+                {
+                    b.HasOne("Back_ColheitaSolidaria.Models.Colaborador", "Usuario")
+                        .WithMany("Doacoes")
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Usuario");
+                });
+
             modelBuilder.Entity("Back_ColheitaSolidaria.Models.Solicitacao", b =>
                 {
                     b.HasOne("Back_ColheitaSolidaria.Models.Doacao", "Doacao")
@@ -238,6 +251,11 @@ namespace Back_ColheitaSolidaria.Migrations
                     b.Navigation("Doacao");
 
                     b.Navigation("Recebedor");
+                });
+
+            modelBuilder.Entity("Back_ColheitaSolidaria.Models.Colaborador", b =>
+                {
+                    b.Navigation("Doacoes");
                 });
 #pragma warning restore 612, 618
         }

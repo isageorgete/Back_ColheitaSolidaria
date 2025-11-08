@@ -3,7 +3,7 @@
     public class SolicitacaoCreateDto
     {
         public int DoacaoId { get; set; }
-        public int UsuarioId { get; set; } // ID do recebedor
+        public int RecebedorId { get; set; } // ID do recebedor
         public int Quantidade { get; set; } // quantidade solicitada
     }
 }

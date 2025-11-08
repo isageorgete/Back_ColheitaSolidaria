@@ -27,7 +27,7 @@ namespace Back_ColheitaSolidaria.Controllers
             if (dto.DoacaoId == 0)
                 return BadRequest("Doação não informada.");
 
-            if (dto.UsuarioId == 0)
+            if (dto.RecebedorId == 0)
                 return BadRequest("Usuário não identificado.");
 
             var doacao = await _context.Doacoes.FindAsync(dto.DoacaoId);
@@ -50,7 +50,11 @@ namespace Back_ColheitaSolidaria.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var solicitacoes = await _context.Solicitacoes.ToListAsync();
+            var solicitacoes = await _context.Solicitacoes
+                .Include(s => s.Recebedor) // garante que o nome do recebedor seja carregado
+                .Include(s => s.Doacao)    // garante que nome/descrição do alimento sejam carregados
+                .ToListAsync();
+
             var response = _mapper.Map<List<SolicitacaoResponseDto>>(solicitacoes);
             return Ok(response);
         }
@@ -85,8 +89,12 @@ namespace Back_ColheitaSolidaria.Controllers
             if (solicitacao == null)
                 return NotFound("Solicitação não encontrada.");
 
-            if (string.IsNullOrEmpty(dto.Status) || (dto.Status != "Aprovado" && dto.Status != "Negado"))
+            if (string.IsNullOrEmpty(dto.Status) ||
+    (dto.Status != "Aprovado" && dto.Status != "Negado" && dto.Status != "Protelado"))
+            {
                 return BadRequest("Status inválido.");
+            }
+
 
             solicitacao.Status = dto.Status;
             await _context.SaveChangesAsync();

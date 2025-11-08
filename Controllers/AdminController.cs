@@ -164,6 +164,33 @@ namespace Back_ColheitaSolidaria.Controllers
             return Ok($"Role do usuário ID {dto.IdUsuario} alterado para {dto.NovoRole} com sucesso!");
         }
 
+        [Authorize(Roles = "Admin")]
+        [HttpPost("criar-recebedor")]
+        public async Task<IActionResult> CriarRecebedor([FromBody] RecebedorRegisterDto dto)
+        {
+            if (dto.Senha != dto.ConfirmarSenha)
+                return BadRequest("As senhas não conferem!");
+
+            if (await _context.Recebedores.AnyAsync(r => r.Email == dto.Email))
+                return BadRequest("Já existe um recebedor com este e-mail!");
+
+            var recebedor = new Recebedor
+            {
+                NomeCompleto = dto.NomeCompleto,
+                Cpf = dto.Cpf,
+                DataNascimento = dto.DataNascimento,
+                NumeroDeFamiliares = dto.NumeroDeFamiliares,
+                Email = dto.Email,
+                Telefone = dto.Telefone,
+                SenhaHash = PasswordHasher.HashPassword(dto.Senha),
+                Role = "Recebedor"
+            };
+
+            _context.Recebedores.Add(recebedor);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Recebedor criado com sucesso pelo administrador!", recebedor.Id });
+        }
 
 
     }

@@ -17,13 +17,6 @@ namespace Back_ColheitaSolidaria.Services.Doacoes
             _mapper = mapper;
         }
 
-        // Listar todas as doações
-        public async Task<List<DoacaoResponseDto>> GetAllAsync()
-        {
-            var doacoes = await _context.Doacoes.ToListAsync();
-            return _mapper.Map<List<DoacaoResponseDto>>(doacoes);
-        }
-
         // Buscar doação por ID
         public async Task<DoacaoResponseDto?> GetByIdAsync(int id)
         {
@@ -89,5 +82,28 @@ namespace Back_ColheitaSolidaria.Services.Doacoes
                 .Where(d => d.UsuarioId == usuarioId)
                 .ToListAsync();
         }
+
+        public async Task<List<DoacaoResponseDto>> GetAllAsync()
+        {
+            var doacoes = await _context.Doacoes
+                .Include(d => d.Usuario) // agora o EF sabe que é Colaborador
+                .Select(d => new DoacaoResponseDto
+                {
+                    Id = d.Id,
+                    Nome = d.Nome,
+                    Descricao = d.Descricao,
+                    Quantidade = d.Quantidade,
+                    Validade = d.Validade,
+                    ImagemUrl = d.ImagemUrl,
+                    UsuarioId = d.UsuarioId,
+                    NomeColaborador = d.Usuario != null ? d.Usuario.NomeCompleto : "Desconhecido"
+                })
+                .ToListAsync();
+
+            return doacoes;
+        }
+
+
+
     }
 }
