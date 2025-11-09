@@ -23,3 +23,5 @@ jobs:
 
     - name: Compilar o projeto
       run: dotnet build --configuration Release
+
+
