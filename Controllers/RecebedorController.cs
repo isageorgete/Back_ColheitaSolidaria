@@ -1,9 +1,11 @@
 ﻿using Back_ColheitaSolidaria.Data;
 using Back_ColheitaSolidaria.DTOs;
+using Back_ColheitaSolidaria.DTOs.Solicitacoes;
 using Back_ColheitaSolidaria.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Back_ColheitaSolidaria.DTOs.Solicitacoes;
+using Back_ColheitaSolidaria.Services;
 
 namespace Back_ColheitaSolidaria.Controllers
 {
@@ -48,6 +50,46 @@ namespace Back_ColheitaSolidaria.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Alimento solicitado com sucesso!", solicitacaoId = solicitacao.Id });
+        }
+
+        [Authorize(Roles = "Recebedor, Admin")]
+        [HttpPut("me")]
+        public async Task<IActionResult> UpdateMe([FromBody] RecebedorUpdateDto dto)
+        {
+            try
+            {
+                var email = User.Identity?.Name;
+                if (email == null)
+                    return Unauthorized("Token inválido ou ausente.");
+
+                var recebedor = await _context.Recebedores.FirstOrDefaultAsync(r => r.Email == email);
+                if (recebedor == null)
+                    return NotFound("Usuário não encontrado.");
+
+                if (!string.IsNullOrEmpty(dto.NomeCompleto))
+                    recebedor.NomeCompleto = dto.NomeCompleto;
+
+                if (!string.IsNullOrEmpty(dto.Telefone))
+                    recebedor.Telefone = dto.Telefone;
+
+                if(dto.DataNascimento.HasValue)
+    recebedor.DataNascimento = dto.DataNascimento.Value;
+
+
+                if (dto.NumeroDeFamiliares.HasValue)
+                    recebedor.NumeroDeFamiliares = dto.NumeroDeFamiliares.Value;
+
+                if (!string.IsNullOrEmpty(dto.Senha))
+                    recebedor.SenhaHash = PasswordHasher.HashPassword(dto.Senha);
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Perfil atualizado com sucesso!" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao atualizar perfil.", error = ex.Message });
+            }
         }
     }
 }

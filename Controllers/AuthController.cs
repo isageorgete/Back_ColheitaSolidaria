@@ -148,5 +148,87 @@ namespace Back_ColheitaSolidaria.Controllers
                 return StatusCode(500, new { message = "Erro ao obter usuário logado.", error = ex.Message });
             }
         }
+
+        [Authorize]
+        [HttpPut("me")]
+        public async Task<IActionResult> AtualizarUsuarioLogado([FromBody] AtualizarUsuarioDto dto)
+        {
+            try
+            {
+                var email = User.Identity?.Name;
+                var role = User.FindFirst(ClaimTypes.Role)?.Value;
+
+                if (email == null || role == null)
+                    return Unauthorized(new { message = "Token inválido ou ausente." });
+
+                object usuario = null;
+
+                switch (role.ToLower())
+                {
+                    // 🔹 ADMIN
+                    case "admin":
+                        usuario = await _context.Admins.FirstOrDefaultAsync(a => a.Email == email);
+                        if (usuario is Admin admin)
+                        {
+                            admin.NomeCompleto = dto.NomeCompleto ?? admin.NomeCompleto;
+                            admin.Cnpj = dto.Cnpj ?? admin.Cnpj;
+                            admin.Telefone = dto.Telefone ?? admin.Telefone;
+                            admin.Endereco = dto.Endereco ?? admin.Endereco;
+                            admin.DataNascimento = dto.DataNascimento ?? admin.DataNascimento;
+
+                            if (!string.IsNullOrWhiteSpace(dto.Senha))
+                                admin.SenhaHash = PasswordHasher.HashPassword(dto.Senha);
+                        }
+                        break;
+
+                    // 🔹 COLABORADOR
+                    case "colaborador":
+                        usuario = await _context.Colaboradores.FirstOrDefaultAsync(c => c.Email == email);
+                        if (usuario is Colaborador colab)
+                        {
+                            colab.NomeCompleto = dto.NomeCompleto ?? colab.NomeCompleto;
+                            colab.CPF = dto.Cpf ?? colab.CPF;
+                            colab.Telefone = dto.Telefone ?? colab.Telefone;
+                            colab.DataNascimento = dto.DataNascimento ?? colab.DataNascimento;
+
+                            if (!string.IsNullOrWhiteSpace(dto.Senha))
+                                colab.SenhaHash = PasswordHasher.HashPassword(dto.Senha);
+                        }
+                        break;
+
+                    // 🔹 RECEBEDOR
+                    case "recebedor":
+                        usuario = await _context.Recebedores.FirstOrDefaultAsync(r => r.Email == email);
+                        if (usuario is Recebedor rec)
+                        {
+                            rec.NomeCompleto = dto.NomeCompleto ?? rec.NomeCompleto;
+                            rec.Cpf = dto.Cpf ?? rec.Cpf;
+                            rec.Telefone = dto.Telefone ?? rec.Telefone;
+                            rec.DataNascimento = dto.DataNascimento ?? rec.DataNascimento;
+                            rec.NumeroDeFamiliares = dto.NumeroDeFamiliares ?? rec.NumeroDeFamiliares;
+
+                            if (!string.IsNullOrWhiteSpace(dto.Senha))
+                                rec.SenhaHash = PasswordHasher.HashPassword(dto.Senha);
+                        }
+                        break;
+
+                    default:
+                        return BadRequest(new { message = "Tipo de usuário inválido." });
+                }
+
+                if (usuario == null)
+                    return NotFound(new { message = "Usuário não encontrado." });
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Dados atualizados com sucesso!" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao atualizar dados.", error = ex.Message });
+            }
+        }
+
+
     }
 }

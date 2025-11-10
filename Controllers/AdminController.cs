@@ -154,15 +154,56 @@ namespace Back_ColheitaSolidaria.Controllers
             if (usuario == null)
                 return NotFound("Usuário não encontrado!");
 
-            // Atualiza o campo Role
-            if (usuario is Colaborador colab)
-                colab.Role = dto.NovoRole;
-            else if (usuario is Recebedor rec)
-                rec.Role = dto.NovoRole;
+            // Se o novo cargo for diferente do tipo atual, mover entre tabelas
+            if (dto.NovoRole.ToLower() != dto.TipoUsuario.ToLower())
+            {
+                if (usuario is Colaborador colab)
+                {
+                    var novoRecebedor = new Recebedor
+                    {
+                        NomeCompleto = colab.NomeCompleto,
+                        Cpf = colab.CPF,
+                        DataNascimento = colab.DataNascimento,
+                        NumeroDeFamiliares = 0, // ou mapeie um valor padrão
+                        Email = colab.Email,
+                        Telefone = colab.Telefone,
+                        SenhaHash = colab.SenhaHash,
+                        Role = "Recebedor"
+                    };
+
+                    _context.Colaboradores.Remove(colab);
+                    _context.Recebedores.Add(novoRecebedor);
+                }
+                else if (usuario is Recebedor rec)
+                {
+                    var novoColaborador = new Colaborador
+                    {
+                        NomeCompleto = rec.NomeCompleto,
+                        CPF = rec.Cpf,
+                        DataNascimento = rec.DataNascimento,
+                        Email = rec.Email,
+                        Telefone = rec.Telefone,
+                        SenhaHash = rec.SenhaHash,
+                        Role = "Colaborador"
+                    };
+
+                    _context.Recebedores.Remove(rec);
+                    _context.Colaboradores.Add(novoColaborador);
+                }
+            }
+            else
+            {
+                // Apenas altera o campo Role
+                if (usuario is Colaborador c)
+                    c.Role = dto.NovoRole;
+                else if (usuario is Recebedor r)
+                    r.Role = dto.NovoRole;
+            }
 
             await _context.SaveChangesAsync();
             return Ok($"Role do usuário ID {dto.IdUsuario} alterado para {dto.NovoRole} com sucesso!");
         }
+
 
         [Authorize(Roles = "Admin")]
         [HttpPost("criar-recebedor")]
@@ -192,6 +233,53 @@ namespace Back_ColheitaSolidaria.Controllers
             return Ok(new { message = "Recebedor criado com sucesso pelo administrador!", recebedor.Id });
         }
 
+        [Authorize(Roles = "Admin")]
+        [HttpGet("usuarios-gerais")]
+        public async Task<IActionResult> GetTodosUsuarios()
+        {
+            var admins = await _context.Admins
+                .Select(a => new UsuarioGeralDto
+                {
+                    Id = a.Id,
+                    NomeCompleto = a.NomeCompleto,
+                    Email = a.Email,
+                    Role = "Admin",
+                    Telefone = null,
+                    DataNascimento = null
+                })
+                .ToListAsync();
+
+            var colaboradores = await _context.Colaboradores
+                .Select(c => new UsuarioGeralDto
+                {
+                    Id = c.Id,
+                    NomeCompleto = c.NomeCompleto,
+                    Email = c.Email,
+                    Role = "Colaborador",
+                    Telefone = c.Telefone,
+                    DataNascimento = c.DataNascimento
+                })
+                .ToListAsync();
+
+            var recebedores = await _context.Recebedores
+                .Select(r => new UsuarioGeralDto
+                {
+                    Id = r.Id,
+                    NomeCompleto = r.NomeCompleto,
+                    Email = r.Email,
+                    Role = "Recebedor",
+                    Telefone = r.Telefone,
+                    DataNascimento = r.DataNascimento
+                })
+                .ToListAsync();
+
+            var usuarios = admins
+                .Concat(colaboradores)
+                .Concat(recebedores)
+                .ToList();
+
+            return Ok(usuarios);
+        }
 
     }
 }

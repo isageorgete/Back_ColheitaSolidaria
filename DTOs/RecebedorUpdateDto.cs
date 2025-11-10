@@ -2,10 +2,10 @@
 {
     public class RecebedorUpdateDto
     {
-        public string NomeCompleto { get; set; } = string.Empty;
-        public int NumeroDeFamiliares { get; set; }
-        public string Telefone { get; set; } = string.Empty;
-
-        public string? Senha { get; set; } = string.Empty;
+        public string? NomeCompleto { get; set; }
+        public string? Telefone { get; set; }
+        public DateTime? DataNascimento { get; set; }
+        public int? NumeroDeFamiliares { get; set; }
+        public string? Senha { get; set; }
     }
 }

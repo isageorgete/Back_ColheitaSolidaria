@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Back_ColheitaSolidaria.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251108155628_InitialCreate")]
+    [Migration("20251110141114_InitialCreate")]
     partial class InitialCreate
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
