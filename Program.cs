@@ -1,4 +1,5 @@
 ﻿using Back_ColheitaSolidaria.Data;
+using Back_ColheitaSolidaria.Middlewares;
 using Back_ColheitaSolidaria.Profiles;
 using Back_ColheitaSolidaria.Services.Doacoes;
 using Back_ColheitaSolidaria.Services.Solicitacoes;
@@ -166,6 +167,9 @@ app.UseSwaggerUI(c =>
 // Pipeline de middlewares
 app.UseCors(myAllowSpecificOrigins);
 app.UseAuthentication();
+// 🔹 Middleware de autorização personalizada
+app.UseRoleAuthorization();
+
 
 // ----------------------
 // Middleware para debug das claims
