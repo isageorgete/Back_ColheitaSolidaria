@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using YourProjectNamespace.Middlewares;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -142,11 +144,8 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("DefaultPolicy", policy =>
-        policy.RequireAuthenticatedUser());
-});
+builder.Services.AddAuthorization(); // sem política global
+
 
 // =======================
 // BUILD E PIPELINE
@@ -168,7 +167,7 @@ app.UseSwaggerUI(c =>
 app.UseCors(myAllowSpecificOrigins);
 app.UseAuthentication();
 // 🔹 Middleware de autorização personalizada
-app.UseRoleAuthorization();
+//app.UseRoleAuthorization();
 
 
 // ----------------------
@@ -187,7 +186,10 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.UseAuthorization();
+app.UseRequestLogging();
+app.UseExceptionHandling();
+
+//app.UseAuthorization();
 
 app.MapControllers();
 

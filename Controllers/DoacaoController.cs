@@ -9,7 +9,16 @@ namespace Back_ColheitaSolidaria.Controllers
     [Route("api/[controller]")]
     public class DoacaoController : ControllerBase
     {
-        private readonly DoacaoService _service;
+
+		[HttpGet("erro-middleware")]
+		[AllowAnonymous] // OBRIGATÓRIO
+		public IActionResult ErroMiddleware()
+		{
+			throw new Exception("Erro criado manualmente para testar o middleware.");
+		}
+
+
+		private readonly DoacaoService _service;
 
         public DoacaoController(DoacaoService service)
         {
@@ -122,5 +131,8 @@ namespace Back_ColheitaSolidaria.Controllers
                 return StatusCode(500, new { message = "Erro interno ao buscar doações.", error = ex.Message });
             }
         }
-    }
+
+
+
+	}
 }
