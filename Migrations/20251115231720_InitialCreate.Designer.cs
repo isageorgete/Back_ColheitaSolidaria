@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Back_ColheitaSolidaria.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251110141114_InitialCreate")]
+    [Migration("20251115231720_InitialCreate")]
     partial class InitialCreate
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -49,6 +49,9 @@ namespace Back_ColheitaSolidaria.Migrations
 
                     b.Property<string>("Endereco")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FotoPerfil")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("NomeCompleto")
@@ -89,6 +92,9 @@ namespace Back_ColheitaSolidaria.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FotoPerfil")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("NomeCompleto")
@@ -166,6 +172,9 @@ namespace Back_ColheitaSolidaria.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FotoPerfil")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("NomeCompleto")

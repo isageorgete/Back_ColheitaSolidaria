@@ -229,6 +229,35 @@ namespace Back_ColheitaSolidaria.Controllers
             }
         }
 
+        [Authorize]
+        [HttpPost("fotoPerfil")]
+        public async Task<IActionResult> AtualizarFotoPerfil([FromBody] AtualizarFotoPerfilDto dto)
+        {
+            if (string.IsNullOrEmpty(dto.FotoUrl))
+                return BadRequest("URL da foto é obrigatória.");
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+
+            // 🔽 Procura o usuário em cada tipo de tabela
+            var colaborador = await _context.Colaboradores.FirstOrDefaultAsync(u => u.Email == email);
+            var recebedor = await _context.Recebedores.FirstOrDefaultAsync(u => u.Email == email);
+            var admin = await _context.Admins.FirstOrDefaultAsync(u => u.Email == email);
+
+            dynamic usuario = colaborador ?? (dynamic)recebedor ?? admin;
+
+            if (usuario == null)
+                return NotFound("Usuário não encontrado.");
+
+            // 🔽 Atualiza o campo FotoPerfil
+            usuario.FotoPerfil = dto.FotoUrl;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Foto de perfil atualizada com sucesso!", fotoUrl = dto.FotoUrl });
+        }
+
+
+
+
 
     }
 }

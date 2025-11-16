@@ -23,7 +23,8 @@ namespace Back_ColheitaSolidaria.Migrations
                     Endereco = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SenhaHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Role = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ChaveAcesso = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    ChaveAcesso = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FotoPerfil = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -42,7 +43,8 @@ namespace Back_ColheitaSolidaria.Migrations
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Telefone = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SenhaHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Role = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Role = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FotoPerfil = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -62,7 +64,8 @@ namespace Back_ColheitaSolidaria.Migrations
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Telefone = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SenhaHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Role = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Role = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FotoPerfil = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {

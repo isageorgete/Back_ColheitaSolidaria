@@ -31,5 +31,7 @@ namespace Back_ColheitaSolidaria.Models
         public string SenhaHash { get; set; } = string.Empty;
 
         public string Role { get; set; } = "Recebedor";
+        public string? FotoPerfil { get; set; }
+
     }
 }

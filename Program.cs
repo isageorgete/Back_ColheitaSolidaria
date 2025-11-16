@@ -166,6 +166,7 @@ app.UseSwaggerUI(c =>
 // Pipeline de middlewares
 app.UseCors(myAllowSpecificOrigins);
 app.UseAuthentication();
+app.UseAuthorization();
 // 🔹 Middleware de autorização personalizada
 //app.UseRoleAuthorization();
 
@@ -188,8 +189,6 @@ app.Use(async (context, next) =>
 
 app.UseRequestLogging();
 app.UseExceptionHandling();
-
-//app.UseAuthorization();
 
 app.MapControllers();
 

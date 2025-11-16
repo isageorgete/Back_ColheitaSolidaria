@@ -11,5 +11,7 @@
         public string SenhaHash { get; set; } = string.Empty;
         public string Role { get; set; } = "Colaborador";
         public ICollection<Doacao>? Doacoes { get; set; }
+        public string? FotoPerfil { get; set; }
+
     }
 }

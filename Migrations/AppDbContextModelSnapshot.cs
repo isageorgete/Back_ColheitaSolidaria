@@ -49,6 +49,9 @@ namespace Back_ColheitaSolidaria.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("FotoPerfil")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("NomeCompleto")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -87,6 +90,9 @@ namespace Back_ColheitaSolidaria.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FotoPerfil")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("NomeCompleto")
@@ -164,6 +170,9 @@ namespace Back_ColheitaSolidaria.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FotoPerfil")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("NomeCompleto")

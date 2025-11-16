@@ -16,5 +16,7 @@
         // Para login
         // Testeeee
         public string ChaveAcesso { get; set; } = string.Empty;
+        public string? FotoPerfil { get; set; }
+
     }
 }
